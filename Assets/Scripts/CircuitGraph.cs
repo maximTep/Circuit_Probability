@@ -6,7 +6,7 @@ public class CircuitGraph : MonoBehaviour
 {
     public List<List<int>> graph = new List<List<int>>();
     public List<float> values = new List<float>();
-
+    private List<bool> used = new List<bool>();
 
 
 
@@ -29,11 +29,12 @@ public class CircuitGraph : MonoBehaviour
     private float calculateFork(List<int> fork)
     {
         if(fork.Count == 0) return 1f;
-        if(fork.Count == 1) return values[fork[0]];  // Not obligatory
         float res = 1;
         foreach (int el in fork)
         {
-            res *= 1 - values[el];
+            if(used[el]) continue;
+            used[el] = true;
+            res *= 1 - (values[el] * calculateFork(graph[el]));
         }
         return 1 - res;
     }
@@ -41,7 +42,9 @@ public class CircuitGraph : MonoBehaviour
 
     public float calculateProbability()
     {
-        if(graph.Count == 0) return 1;
+        used.Clear();
+        for(int i = 0; i < values.Count; i++) used.Add(false);
+        if(graph.Count == 0) return 0;
         return values[0] * calculateFork(graph[0]);
     }
 
