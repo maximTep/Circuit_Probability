@@ -5,12 +5,13 @@ using UnityEngine;
 public class CircuitGraph : MonoBehaviour
 {
     public List<List<int>> graph = new List<List<int>>();
+    public List<List<float>> linksGraph = new List<List<float>>();
     public List<float> values = new List<float>();
     private List<bool> used = new List<bool>();
-    private List<bool> isNodeOpen = new List<bool>();
-    private List<bool> isNodeClosed = new List<bool>();
-    private List<List<int>> reversedGraph = new List<List<int>>();
     private System.Random random = new System.Random();
+    private List<Path> paths = new List<Path>();
+    private int globalStartEl = -1;
+    private int globalEndEl = -1;
 
 
 
@@ -47,23 +48,65 @@ public class CircuitGraph : MonoBehaviour
 
     private bool getRandDfsProb()
     {
-        return dfsHelp(0);
+        return dfsRandHelp(globalStartEl);
     }
 
-    private bool dfsHelp(int startEl)
+    private bool dfsRandHelp(int startEl)
     {
         float r = (float)random.NextDouble();
         if (r > values[startEl]) return false;
-        if(graph[startEl].Count == 0) return true;
+        if(startEl == globalEndEl) return true;
         bool res = false;
         foreach(var el in graph[startEl])
         {   
-            res = res || dfsHelp(el);            
+            r = (float)random.NextDouble();
+            if(r > linksGraph[startEl][el]) continue;
+            res = res || dfsRandHelp(el);
         }
         return res;
     }
 
+    public string GetPathString()
+    {
+        paths.Clear();
+        getPaths(globalStartEl, new List<int>(), 1f);
+        string s = "";
+        int i = 0;
+        foreach(Path path in paths)
+        {   
+            s += (++i).ToString() + ") ";
+            foreach(int el in path.path) s += el.ToString() + ", ";
+            s += "вероятность:" + path.probability.ToString() + "\n";
+        }
+        return s;
+    }
 
+    private void getPaths(int startEl, List<int> curPath, float probability)
+    {
+        List<int> newPath = new List<int>();
+        foreach(int el in curPath) newPath.Add(el); 
+        newPath.Add(startEl);
+        probability *= values[startEl];
+        if(startEl == globalEndEl)
+        {
+            paths.Add(new Path(newPath, probability));
+            return;
+        } 
+        foreach(var el in graph[startEl])
+        {
+            getPaths(el, newPath, probability * linksGraph[startEl][el]);
+        }
+    }
+
+    public void setStartEl(int elNum)
+    {
+        this.globalStartEl = elNum;
+    }
+
+    public void setEndEl(int elNum)
+    {
+        this.globalEndEl = elNum;
+    }
 
     
     // EXACT SOLUTION HADNT BEEN FOUND
@@ -145,3 +188,19 @@ public class CircuitGraph : MonoBehaviour
 
 
 }
+
+public class Path
+{
+    public List<int> path;
+    public float probability;
+    public Path(List<int> path, float probability)
+    {
+        this.path = path;
+        this.probability = probability;
+    }
+    public Path()
+    {
+        this.probability = 1f;
+    }
+}
+

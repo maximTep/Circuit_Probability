@@ -7,13 +7,17 @@ public class CreateLink : MonoBehaviour
 {
     public Button button;
     public GameObject linkPrefab;
+    public GameObject arrowPrefab;
+    public GameObject inputPrefab;
 	public GameObject links;
+	public GameObject linksInputs;
     public GameObject elements;
     private CircuitGraph globalCircGraph;
 	private bool isBtnClicked = false;
     private bool isLnkStarted = false;
     private List<Vector3> points = new List<Vector3>();
     private List<List<int>> circuitGraph = new List<List<int>>();
+    private List<Pair<int, int>> linksEnds = new List<Pair<int, int>>();
     private int fromEl = -1;
     private int toEl = -1;
 
@@ -28,7 +32,7 @@ public class CreateLink : MonoBehaviour
 	void Update()
 	{
 		MouseCheck();
-
+        listenInputs();
 
         int countDif = elements.transform.childCount - circuitGraph.Count;
         for(int i = 0; i< countDif; i++) circuitGraph.Add(new List<int>());  // Update graph;
@@ -72,6 +76,7 @@ public class CreateLink : MonoBehaviour
             toEl = HitElementInd();
             circuitGraph[fromEl].Add(toEl);
             globalCircGraph.graph = circuitGraph;
+            linksEnds.Add(new Pair<int, int>(fromEl, toEl));
             //globalCircGraph.printGraph();
             //globalCircGraph.printValues();
         } 
@@ -101,17 +106,54 @@ public class CreateLink : MonoBehaviour
     private void DrawLine(Vector3 start, Vector3 end)
     {  
         GameObject newLink = Instantiate(linkPrefab) as GameObject;
+        GameObject newArrow = Instantiate(arrowPrefab) as GameObject;
+        GameObject newInput = Instantiate(inputPrefab) as GameObject;
 		newLink.transform.SetParent(links.transform, false);
+		newArrow.transform.SetParent(links.transform, false);
+		newInput.transform.SetParent(linksInputs.transform, false);
         Vector3 pos = start + (end - start)/2;
+        Vector3 posInp = start + (end - start)/2.5f;
         pos.z = 2;
+        posInp.z = 2;
         newLink.transform.localPosition = pos;
+        newArrow.transform.localPosition = pos;
+        newInput.transform.localPosition = posInp;
         Vector3 scale = newLink.transform.localScale;
         scale.x = (start - end).magnitude;
         newLink.transform.localScale = scale;
-        float angle = Vector3.SignedAngle(Vector3.right, start-end, Vector3.forward);
+        float angle = Vector3.SignedAngle(Vector3.right, end-start, Vector3.forward);
         newLink.transform.Rotate(new Vector3(0, 0, angle));
+        newArrow.transform.Rotate(new Vector3(0, 0, angle));
+
+
+
     }
 
+
+    private void listenInputs()
+    {
+        List<List<float>> newLinksGraph = new List<List<float>>();
+        for(int i = 0; i < circuitGraph.Count; i++)
+        {
+            List<float> newLst = new List<float>();
+            for(int j = 0; j < circuitGraph.Count; j++)
+            {
+                newLst.Add(1.0f);
+            }
+            newLinksGraph.Add(newLst);
+        }
+        
+        int it = 0;
+        foreach (Transform child in linksInputs.transform) 
+        {
+            var input = child.GetChild(0).GetComponent<InputField>();
+            float val = 1f;
+            float.TryParse(input.text, out val);
+            newLinksGraph[linksEnds[it].First][linksEnds[it].Second] = val;
+            it++;
+        }
+        globalCircGraph.linksGraph = newLinksGraph;
+    }
     
 
 
